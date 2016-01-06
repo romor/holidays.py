@@ -27,6 +27,8 @@ Example Usage
 
 .. code-block:: python
 
+    from datetime import date
+
     import holidays
 
     us_holidays = holidays.UnitedStates()  # or holidays.US()
@@ -69,22 +71,24 @@ If the above fails, please use easy_install instead:
 Available Countries
 -------------------
 
-============ ====  ===========================================================
-Country      Abbr  Provinces/States Available
-============ ====  ===========================================================
-Australia    AU    prov = **ACT** (default), NSW, NT, QLD, SA, TAS, VIC, WA
-Austria      AT    prov = **W** (default), B, K, N, O, S, ST, T, V
-Canada       CA    prov = AB, BC, MB, NB, NL, NS, NT, NU, **ON** (default),
-                   PE, QC, SK, YU
-Mexico       MX    None
-NewZealand   NZ    prov = NTL, AUK, TKI, HKB, WGN, MBH, NSN, CAN, STC, WTL,
-                   OTA, STL, CIT
-UnitedStates US    state = AL, AK, AS, AZ, AR, CA, CO, CT, DE, DC, FL, GA, GU,
-                   HI, ID, IL, IN, IA, KS, KY, LA, ME, MD, MH, MA, MI, FM, MN,
-                   MS, MO, MT, NE, NV, NH, NJ, NM, NY, NC, ND, MP, OH, OK, OR,
-                   PW, PA, PR, RI, SC, SD, TN, TX, UT, VT, VA, VI, WA, WV, WI,
-                   WY
-============ ====  ===========================================================
+============= ====  ==========================================================
+Country       Abbr  Provinces/States Available
+============= ====  ==========================================================
+Australia     AU    prov = **ACT** (default), NSW, NT, QLD, SA, TAS, VIC, WA
+Austria       AT    prov = B, K, N, O, S, ST, T, V, **W** (default)
+Canada        CA    prov = AB, BC, MB, NB, NL, NS, NT, NU, **ON** (default),
+                    PE, QC, SK, YU
+Germany       DE    BW, BY, BE, BB, HB, HH, HE, MV, NI, NW, RP, SL, SN, ST,
+                    SH, TH
+Mexico        MX    None
+NewZealand    NZ    prov = NTL, AUK, TKI, HKB, WGN, MBH, NSN, CAN, STC, WTL,
+                    OTA, STL, CIT
+UnitedStates  US    state = AL, AK, AS, AZ, AR, CA, CO, CT, DE, DC, FL, GA,
+                    GU, HI, ID, IL, IN, IA, KS, KY, LA, ME, MD, MH, MA, MI,
+                    FM, MN, MS, MO, MT, NE, NV, NH, NJ, NM, NY, NC, ND, MP,
+                    OH, OK, OR, PW, PA, PR, RI, SC, SD, TN, TX, UT, VT, VA,
+                    VI, WA, WV, WI, WY
+============= ====  ==========================================================
 
 
 API
@@ -143,6 +147,7 @@ More Examples
 
     # Simplest example possible
 
+    >>> from datetime import date
     >>> import holidays
     >>> date(2014, 1, 1) in holidays.US()
     True
@@ -352,7 +357,7 @@ Coverage
 
     $ pip install coverage
     $ coverage run --omit=*site-packages* tests.py
-    $ coverage report
+    $ coverage report -m
 
 
 Contributions

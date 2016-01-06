@@ -9,7 +9,7 @@
 #  Author:  ryanss <ryanssdev@icloud.com>
 #  Website: https://github.com/ryanss/holidays.py
 #  License: MIT (see LICENSE file)
-#  Version: 0.4 (October 4, 2015)
+#  Version: 0.4.1 (January 5, 2016)
 
 
 from datetime import date, datetime
@@ -21,7 +21,7 @@ from dateutil.rrule import rrule, DAILY
 import six
 
 
-__version__ = '0.4'
+__version__ = '0.4.1'
 
 
 MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY = range(7)
@@ -172,9 +172,6 @@ class HolidayBase(dict):
 
     def _populate(self, year):
         pass
-
-    def _populate_school(self, year):
-        raise ValueError("School vacations not supported for this country")
 
 
 def createHolidaySum(h1, h2):
@@ -1350,6 +1347,110 @@ class AU(Australia):
     pass
 
 
+class Germany(HolidayBase):
+    """Official holidays for Germany in it's current form.
+
+    This class doesn't return any holidays before 1990-10-03.
+
+    Before that date the current Germany was separated into the "German
+    Democratic Republic" and the "Federal Republic of Germany" which both had
+    somewhat different holidays. Since this class is called "Germany" it
+    doesn't really make sense to include the days from the two former
+    countries.
+
+    Note that Germany doesn't have rules for holidays that happen on a
+    Sunday. Those holidays are still holiday days but there is no additional
+    day to make up for the "lost" day.
+
+    Also note that German holidays are partly declared by each province there
+    are some weired edge cases:
+
+        - "Mariä Himmelfahrt" is only a holiday in Bavaria (BY) if your
+          municipality is mothly catholic which in term depends on census data.
+          Since we don't have this data but most municipalities in Bavaria
+          *are* mostly catholic, we count that as holiday for whole Bavaria.
+        - There is an "Augsburger Friedensfest" which only exists in the town
+          Augsburg. This is excluded for Bavaria.
+        - "Gründonnerstag" (Thursday before easter) is not a holiday but pupil
+           don't have to go to school (but only in Baden Württemberg) which is
+           solved by adjusting school holidays to include this day. It is
+           excluded from our list.
+        - "Fronleichnam" is a holiday in certain, explicitly defined
+          municipalities in Saxony (SN) and Thuringia (TH). We exclude it from
+          both provinces.
+    """
+
+    PROVINCES = ['BW', 'BY', 'BE', 'BB', 'HB', 'HH', 'HE', 'MV', 'NI', 'NW',
+                 'RP', 'SL', 'SN', 'ST', 'SH', 'TH']
+
+    def __init__(self, **kwargs):
+        self.country = 'DE'
+        self.prov = kwargs.pop('prov', 'SH')
+        HolidayBase.__init__(self, **kwargs)
+
+    def _populate(self, year):
+        if year <= 1989:
+            return
+
+        if year > 1990:
+
+            self[date(year, 1, 1)] = 'Neujahr'
+
+            if self.prov in ('BW', 'BY', 'ST'):
+                self[date(year, 1, 6)] = 'Heilige Drei Könige'
+
+            self[easter(year) - rd(days=2)] = 'Karfreitag'
+
+            if self.prov == 'BB':
+                # will always be a Sunday and we have no "observed" rule so
+                # this is pretty pointless but it's nonetheless an official
+                # holiday by law
+                self[easter(year)] = 'Ostern'
+
+            self[easter(year) + rd(days=1)] = 'Ostermontag'
+
+            self[date(year, 5, 1)] = 'Maifeiertag'
+
+            self[easter(year) + rd(days=39)] = 'Christi Himmelfahrt'
+
+            if self.prov == 'BB':
+                # will always be a Sunday and we have no "observed" rule so
+                # this is pretty pointless but it's nonetheless an official
+                # holiday by law
+                self[easter(year) + rd(days=49)] = 'Pfingsten'
+
+            self[easter(year) + rd(days=50)] = 'Pfingstmontag'
+
+            if self.prov in ('BW', 'BY', 'HE', 'NW', 'RP', 'SL'):
+                self[easter(year) + rd(days=60)] = 'Fronleichnam'
+
+            if self.prov in ('BY', 'SL'):
+                self[date(year, 8, 15)] = 'Mariä Himmelfahrt'
+
+            self[date(year, 10, 3)] = 'Tag der Deutschen Einheit'
+
+        if self.prov in ('BB', 'MV', 'SN', 'ST', 'TH'):
+            self[date(year, 10, 31)] = 'Reformationstag'
+
+        if self.prov in ('BW', 'BY', 'NW', 'RP', 'SL'):
+            self[date(year, 11, 1)] = 'Allerheiligen'
+
+        if self.prov == 'SN':
+            # can be calculated as "last wednesday before year-11-23" which is
+            # why we need to go back two wednesdays if year-11-23 happens to be
+            # a wednesday
+            base_data = date(year, 11, 23)
+            weekday_delta = WE(-2) if base_data.weekday() == 2 else WE(-1)
+            self[base_data + rd(weekday=weekday_delta)] = 'Buß- und Bettag'
+
+        self[date(year, 12, 25)] = 'Erster Weihnachtstag'
+        self[date(year, 12, 26)] = 'Zweiter Weihnachtstag'
+
+
+class DE(Germany):
+    pass
+
+
 class Austria(HolidayBase):
     PROVINCES = ['B', 'K', 'N', 'O', 'S', 'ST', 'T', 'V', 'W']
 
@@ -1376,55 +1477,6 @@ class Austria(HolidayBase):
         self[date(year, 12, 8)] = "Maria Empfängnis"
         self[date(year, 12, 25)] = "Christtag"
         self[date(year, 12, 26)] = "Stefanitag"
-
-    def _populate_school(self, year):
-        '''appends school vacation days, which are no official public holidays
-        but only days off for pupils'''
-        # Weihnachtsferien
-        start = date(year, 1, 2)
-        end = date(year, 1, 5)
-        for cur_date in rrule(DAILY, dtstart=start, until=end):
-            self.append(cur_date)
-
-        # Semesterferien
-        start = date(year, 2, 1) + rd(weekday=MO)
-        end = start + rd(weekday=FR)
-        if self.prov in ['B', 'K', 'S', 'T']:
-            start += rd(days=7)
-            end += rd(days=7)
-        elif self.prov in ['O', 'ST', 'V']:
-            start += rd(days=14)
-            end += rd(days=14)
-        for cur_date in rrule(DAILY, dtstart=start, until=end):
-            self.append(cur_date)
-
-        # Osterferien
-        self.append(easter(year) + rd(weekday=TU))
-        start = easter(year) + rd(weekday=MO(-1))
-        end = start + rd(weekday=FR)
-        for cur_date in rrule(DAILY, dtstart=start, until=end):
-            self.append(cur_date)
-
-        # Pfingsten
-        self.append(easter(year) + rd(days=51))
-
-        # Sommerferien
-        start = date(year, 6, 30) + rd(weekday=MO)
-        end = start + rd(weekday=FR(+9))
-        if self.prov in ['K', 'O', 'S', 'ST', 'T', 'V']:
-            start += rd(days=7)
-            end += rd(days=7)
-        for cur_date in rrule(DAILY, dtstart=start, until=end):
-            self.append(cur_date)
-
-        # Allerseelen
-        self[date(year, 11, 2)] = "Allerheiligen"
-
-        # Weihnachtsferien
-        start = date(year, 12, 24)
-        end = date(year, 12, 31)
-        for cur_date in rrule(DAILY, dtstart=start, until=end):
-            self.append(cur_date)
 
 
 class AT(Austria):
