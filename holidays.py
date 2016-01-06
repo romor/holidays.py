@@ -16,7 +16,7 @@ from datetime import date, datetime
 from dateutil.easter import easter
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta as rd
-from dateutil.relativedelta import MO, TU, WE, TH, FR, SA
+from dateutil.relativedelta import MO, TU, WE, TH, FR, SA, SU
 from dateutil.rrule import rrule, DAILY
 import six
 
@@ -32,7 +32,7 @@ class HolidayBase(dict):
     PROVINCES = []
 
     def __init__(self, years=[], expand=True, observed=True,
-                 prov=None, state=None, incl_school=False):
+                 prov=None, state=None, incl_school=False, incl_weekend=False):
         self.observed = observed
         self.expand = expand
         if isinstance(years, int):
@@ -42,10 +42,9 @@ class HolidayBase(dict):
             self.prov = prov
         self.state = state
         self.incl_school = incl_school
+        self.incl_weekend = incl_weekend
         for year in list(self.years):
-            self._populate(year)
-            if self.incl_school:
-                self._populate_school(year)
+            self._do_populate(year)
 
     def __setattr__(self, key, value):
         if key == 'observed' and len(self) > 0:
@@ -56,9 +55,7 @@ class HolidayBase(dict):
                 self.years = set()
                 self.clear()
                 for year in years:
-                    self._populate(year)
-                    if self.incl_school:
-                        self._populate_school(year)
+                    self._do_populate(year)
             else:
                 # Remove (Observed) dates
                 for k, v in list(self.items()):
@@ -83,9 +80,7 @@ class HolidayBase(dict):
             raise TypeError("Cannot convert type '%s' to date." % type(key))
         if self.expand and key.year not in self.years:
             self.years.add(key.year)
-            self._populate(key.year)
-            if self.incl_school:
-                self._populate_school(key.year)
+            self._do_populate(key.year)
         return key
 
     def __contains__(self, key):
@@ -165,6 +160,15 @@ class HolidayBase(dict):
 
     def __radd__(self, other):
         return self.__add__(other)
+
+    def _do_populate(self, year):
+        self._populate(year)
+        if self.incl_school:
+            self._populate_school(year)
+        if self.incl_weekend:
+            for dt in rrule(DAILY, dtstart=date(year, 1, 1), 
+                            until=date(year, 12, 31), byweekday=(SA, SU)):
+                self[dt] = "Weekend"
 
     def _populate(self, year):
         pass
