@@ -1478,6 +1478,55 @@ class Austria(HolidayBase):
         self[date(year, 12, 25)] = "Christtag"
         self[date(year, 12, 26)] = "Stefanitag"
 
+    def _populate_school(self, year):
+        '''appends school vacation days, which are no official public holidays
+        but only days off for pupils'''
+        # Weihnachtsferien
+        start = date(year, 1, 2)
+        end = date(year, 1, 5)
+        for cur_date in rrule(DAILY, dtstart=start, until=end):
+            self.append(cur_date)
+
+        # Semesterferien
+        start = date(year, 2, 1) + rd(weekday=MO)
+        end = start + rd(weekday=FR)
+        if self.prov in ['B', 'K', 'S', 'T']:
+            start += rd(days=7)
+            end += rd(days=7)
+        elif self.prov in ['O', 'ST', 'V']:
+            start += rd(days=14)
+            end += rd(days=14)
+        for cur_date in rrule(DAILY, dtstart=start, until=end):
+            self.append(cur_date)
+
+        # Osterferien
+        self.append(easter(year) + rd(weekday=TU))
+        start = easter(year) + rd(weekday=MO(-1))
+        end = start + rd(weekday=FR)
+        for cur_date in rrule(DAILY, dtstart=start, until=end):
+            self.append(cur_date)
+
+        # Pfingsten
+        self.append(easter(year) + rd(days=51))
+
+        # Sommerferien
+        start = date(year, 6, 30) + rd(weekday=MO)
+        end = start + rd(weekday=FR(+9))
+        if self.prov in ['K', 'O', 'S', 'ST', 'T', 'V']:
+            start += rd(days=7)
+            end += rd(days=7)
+        for cur_date in rrule(DAILY, dtstart=start, until=end):
+            self.append(cur_date)
+
+        # Allerseelen
+        self[date(year, 11, 2)] = "Allerheiligen"
+
+        # Weihnachtsferien
+        start = date(year, 12, 24)
+        end = date(year, 12, 31)
+        for cur_date in rrule(DAILY, dtstart=start, until=end):
+            self.append(cur_date)
+
 
 class AT(Austria):
     pass
